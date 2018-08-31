@@ -5,14 +5,16 @@
 You get:
 
 - A history of emails sent to each user
-- Open and click tracking
 - Easy UTM tagging
+- Open and click tracking
 
 Works with any email service.
 
 :bullettrain_side: To manage unsubscribes, check out [Mailkick](https://github.com/ankane/mailkick)
 
 :fire: To track visits and events, check out [Ahoy](https://github.com/ankane/ahoy)
+
+[![Build Status](https://travis-ci.org/ankane/ahoy_email.svg?branch=master)](https://travis-ci.org/ankane/ahoy_email)
 
 ## Installation
 
@@ -26,7 +28,7 @@ And run the generator. This creates a model to store messages.
 
 ```sh
 rails generate ahoy_email:install
-rake db:migrate
+rails db:migrate
 ```
 
 ## How It Works
@@ -42,7 +44,7 @@ By default, Ahoy tries `User.where(email: message.to.first).first` to find the u
 You can pass a specific user with:
 
 ```ruby
-class UserMailer < ActionMailer::Base
+class UserMailer < ApplicationMailer
   def welcome_email(user)
     # ...
     track user: user
@@ -56,8 +58,8 @@ The user association is [polymorphic](http://railscasts.com/episodes/154-polymor
 To get all messages sent to a user, add an association:
 
 ```ruby
-class User < ActiveRecord::Base
-  has_many :messages, class_name: "Ahoy::Message"
+class User < ApplicationRecord
+  has_many :messages, class_name: "Ahoy::Message", as: :user
 end
 ```
 
@@ -65,36 +67,6 @@ And run:
 
 ```ruby
 user.messages
-```
-
-### Opens
-
-An invisible pixel is added right before the `</body>` tag in HTML emails.
-
-If the recipient has images enabled in his or her email client, the pixel is loaded and the open time recorded.
-
-Use `track open: false` to skip this.
-
-### Clicks
-
-A redirect is added to links to track clicks in HTML emails.
-
-````
-http://chartkick.com
-```
-
-becomes
-
-```
-http://you.io/ahoy/messages/rAnDoMtOkEn/click?url=http%3A%2F%2Fchartkick.com&signature=...
-```
-
-A signature is added to prevent [open redirects](https://www.owasp.org/index.php/Open_redirect).
-
-Use `track click: false` to skip tracking, or skip specific links with:
-
-```html
-<a data-skip-click="true" href="...">Can't touch this</a>
 ```
 
 ### UTM Parameters
@@ -112,6 +84,54 @@ Use `track utm_params: false` to skip tagging, or skip specific links with:
 
 ```html
 <a data-skip-utm-params="true" href="...">Break it down</a>
+```
+
+### Opens
+
+An invisible pixel is added right before the `</body>` tag in HTML emails.
+
+If the recipient has images enabled in his or her email client, the pixel is loaded and the open time recorded.
+
+Use `track open: false` to skip this.
+
+### Clicks
+
+A redirect is added to links to track clicks in HTML emails.
+
+```
+https://chartkick.com
+```
+
+becomes
+
+```
+https://yoursite.com/ahoy/messages/rAnDoMtOkEn/click?url=https%3A%2F%2Fchartkick.com&signature=...
+```
+
+A signature is added to prevent [open redirects](https://www.owasp.org/index.php/Open_redirect).
+
+Use `track click: false` to skip tracking, or skip specific links with:
+
+```html
+<a data-skip-click="true" href="...">Can't touch this</a>
+```
+
+### Extra Attributes
+
+Create a migration to add extra attributes to the `ahoy_messages` table, for example:
+
+```ruby
+class AddCampaignIdToAhoyMessages < ActiveRecord::Migration
+  def change
+    add_column :ahoy_messages, :campaign_id, :integer
+  end
+end
+```
+
+Then use:
+
+```ruby
+track extra: {campaign_id: 1}
 ```
 
 ## Customize
@@ -132,7 +152,7 @@ There are 3 places to set options. Here’s the order of precedence.
 #### Action
 
 ``` ruby
-class UserMailer < ActionMailer::Base
+class UserMailer < ApplicationMailer
   def welcome_email(user)
     # ...
     track user: user
@@ -144,7 +164,7 @@ end
 #### Mailer
 
 ```ruby
-class UserMailer < ActionMailer::Base
+class UserMailer < ApplicationMailer
   track utm_campaign: "boom"
 end
 ```
@@ -161,19 +181,29 @@ Subscribe to open and click events. Create an initializer `config/initializers/a
 
 ```ruby
 class EmailSubscriber
-
   def open(event)
-    # :message and :controller keys
-    ahoy = event[:controller].ahoy
-    ahoy.track "Email opened", message_id: event[:message].id
+    # any code you want
   end
 
   def click(event)
-    # same keys as above, plus :url
-    ahoy = event[:controller].ahoy
-    ahoy.track "Email clicked", message_id: event[:message].id, url: event[:url]
+    # any code you want
+  end
+end
+
+AhoyEmail.subscribers << EmailSubscriber.new
+```
+
+Here’s an example if you use [Ahoy](https://github.com/ankane/ahoy) to track visits and events:
+
+```ruby
+class EmailSubscriber
+  def open(event)
+    event[:controller].ahoy.track "Email opened", message_id: event[:message].id
   end
 
+  def click(event)
+    event[:controller].ahoy.track "Email clicked", message_id: event[:message].id, url: event[:url]
+  end
 end
 
 AhoyEmail.subscribers << EmailSubscriber.new
@@ -184,7 +214,7 @@ AhoyEmail.subscribers << EmailSubscriber.new
 You can use a `Proc` for any option.
 
 ```ruby
-track utm_campaign: proc{|message, mailer| mailer.action_name + Time.now.year }
+track utm_campaign: ->(message, mailer) { mailer.action_name + Time.now.year }
 ```
 
 Disable tracking for an email
@@ -212,10 +242,16 @@ Customize domain
 track url_options: {host: "mydomain.com"}
 ```
 
+By default, unsubscribe links are excluded from tracking. To change this, use:
+
+```ruby
+track unsubscribe_links: true
+```
+
 Use a different model
 
 ```ruby
-AhoyEmail.message_model = UserMessage
+AhoyEmail.message_model = -> { UserMessage }
 ```
 
 ## Upgrading

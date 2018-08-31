@@ -1,6 +1,10 @@
 module Ahoy
   class MessagesController < ActionController::Base
-    before_filter :set_message
+    if respond_to? :before_action
+      before_action :set_message
+    else
+      before_filter :set_message
+    end
 
     def open
       if @message && !@message.opened_at
@@ -20,10 +24,10 @@ module Ahoy
       url = params[:url].to_s
       signature = OpenSSL::HMAC.hexdigest(OpenSSL::Digest.new("sha1"), AhoyEmail.secret_token, url)
       publish :click, url: params[:url]
-      if secure_compare(params[:signature], signature)
+      if secure_compare(params[:signature].to_s, signature)
         redirect_to url
       else
-        redirect_to main_app.root_url
+        redirect_to AhoyEmail.invalid_redirect_url || main_app.root_url
       end
     end
 

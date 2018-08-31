@@ -1,3 +1,45 @@
+## 0.5.2
+
+- Fixed secret token for Rails 5.2
+- Added `heuristic_parse` option
+
+## 0.5.1
+
+- Fixed deprecation warning in Rails 5.2
+- Added `unsubscribe_links` option
+- Allow `message_model` to accept a proc
+- Use `references` in migration
+
+## 0.5.0
+
+- Added support for Rails 5.1
+- Added `invalid_redirect_url`
+
+## 0.4.0
+
+- Fixed `belongs_to` error in Rails 5
+- Include `safely_block` gem without polluting global namespace
+
+## 0.3.2
+
+- Fixed deprecation warning for Rails 5
+- Do not track content by default on fresh installations
+
+## 0.3.1
+
+- Fixed deprecation warnings
+- Fixed `stack level too deep` error
+
+## 0.3.0
+
+- Added safely for error reporting
+- Fixed error with `to`
+- Prevent duplicate records when mail called multiple times
+
+## 0.2.4
+
+- Added `extra` option for extra attributes
+
 ## 0.2.3
 
 - Save utm parameters

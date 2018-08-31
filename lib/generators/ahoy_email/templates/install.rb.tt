@@ -1,17 +1,16 @@
-class <%= migration_class_name %> < ActiveRecord::Migration
+class <%= migration_class_name %> < ActiveRecord::Migration<%= migration_version %>
   def change
     create_table :ahoy_messages do |t|
       t.string :token
 
       # user
       t.text :to
-      t.integer :user_id
-      t.string :user_type
+      t.references :user, polymorphic: true
 
       # optional - feel free to remove
       t.string :mailer
       t.text :subject
-      t.text :content
+      # t.text :content
 
       # optional
       # t.string :utm_source
@@ -27,6 +26,5 @@ class <%= migration_class_name %> < ActiveRecord::Migration
     end
 
     add_index :ahoy_messages, [:token]
-    add_index :ahoy_messages, [:user_id, :user_type]
   end
 end
