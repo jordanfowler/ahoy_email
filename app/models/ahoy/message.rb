@@ -1,7 +1,11 @@
 module Ahoy
   class Message < ApplicationRecord
-    self.table_name = "ahoy_messages"
+    if self.respond_to?(:table_name)
+      self.table_name = "ahoy_messages"
+    end
 
-    belongs_to :user, AhoyEmail.belongs_to.merge(polymorphic: true)
+    if respond_to?(:belongs_to)
+      belongs_to :user, AhoyEmail.belongs_to.merge(polymorphic: true)
+    end
   end
 end
